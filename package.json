@@ -1,8 +1,11 @@
 {
   "name": "portcullis",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "portreserve utilities",
   "main": "index.js",
+  "bin": {
+    "portcullis-find-reservation": "bin/portcullis-find-reservation" 
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -10,8 +10,9 @@ function done(err, result) {
     console.error(err.message);
     process.exit(1);
   }
-  var protocol = result.protocol ? '/' + result.protocol : '';
-  console.log('%s%s %d', result.service, protocol, result.port);
+  var reservation = result.reservation;
+  var protocol = reservation.protocol ? '/' + reservation.protocol : '';
+  console.log('%s%s %d', reservation.service, protocol, reservation.port);
   process.exit(0);
 }
 
@@ -22,9 +23,13 @@ if (argv.help) {
   console.log(USAGE);
   process.exit(0);
 }
+else if (!argv.service) {
+  console.error('Missing service name');
+  process.exit(1);
+}
 else {
   var protocol = argv.protocol;
-  var port = argv.port;
+  var port = argv.port || 0;
   var service = argv.service;
-  require('../').find(service, protocol, port, done);
+  require('../').allocate({service: service, protocol: protocol, port: port}, done);
 }
