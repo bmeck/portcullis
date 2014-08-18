@@ -1,0 +1,25 @@
+{
+  "name": "portcullis",
+  "version": "1.0.0",
+  "description": "portreserve utilities",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bmeck/portcullis.git"
+  },
+  "keywords": [
+    "portreserve"
+  ],
+  "author": "bradleymeck",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bmeck/portcullis/issues"
+  },
+  "homepage": "https://github.com/bmeck/portcullis",
+  "dependencies": {
+    "minimist": "^1.1.0"
+  }
+}

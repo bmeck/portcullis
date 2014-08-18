@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+
+var minimist = require('minimist');
+var argv = minimist(process.argv.slice(2));
+
+argv.help = argv.help || argv.h;
+
+function done(err, result) {
+  if (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+  var protocol = result.protocol ? '/' + result.protocol : '';
+  console.log('%s%s %d', result.service, protocol, result.port);
+  process.exit(0);
+}
+
+if (argv.help) {
+  var USAGE = [
+    'USAGE: portcullis-find --service name [--port port] [--protocol proto]'
+  ].join('\n');
+  console.log(USAGE);
+  process.exit(0);
+}
+else {
+  var protocol = argv.protocol;
+  var port = argv.port;
+  var service = argv.service;
+  require('../').find(service, protocol, port, done);
+}
