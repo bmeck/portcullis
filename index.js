@@ -15,8 +15,6 @@ function Reservation(service, protocol, port) {
   this.port = +port;
   return this;
 }
-Reservation.parse = function () {
-}
 
 exports.parseLine = function (line, cb) {
   var parts = /^([0-9a-zA-Z_\-]+)(?:[/](tcp|udp))?\s*(\d+)$/g.exec(String(line));
@@ -30,10 +28,13 @@ exports.parseLine = function (line, cb) {
 }
 
 exports.Jar = Jar;
-function Jar() {
+function Jar(min, max) {
   this.services = Object.create(null);
+  this.minPort = min == null ? 1025 : +min;
+  this.maxPort = max == null ? MAX_PORT : +max;
+
   this._occupied = Object.create(null);
-  this._base_port = 1025;
+  this._base_port = this.minPort;
   return this;
 }
 Jar.prototype.findUnusedPort = function (protocol, preferred, attempts, cb) {
@@ -50,8 +51,8 @@ Jar.prototype.findUnusedPort = function (protocol, preferred, attempts, cb) {
       callback(cb, new Error('unable to find port in specified number of attempts'));
       return;
     }
-    current_port = (current_port + 1) % (MAX_PORT + 1);
-    if (current_port === 0) current_port = 1025;
+    current_port = (current_port + 1) % (this.maxPort + 1);
+    if (current_port === 0) current_port = this.minPort;
     if (current_port === first_port) {
       callback(cb, new Error('wrapped around and found no ports'));
       return;
