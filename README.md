@@ -13,3 +13,8 @@ jar.reserve('http 0', function () {
 ```javascript
 pc.Jar.stringify(jar) // outputs in portreserve file format
 ```
+
+```javascript
+pc.Reservation.parse(line) // outputs in portreserve file format
+pc.Reservation.stringify(reservation) // outputs in portreserve file format
+```

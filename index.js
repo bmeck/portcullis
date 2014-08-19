@@ -15,8 +15,10 @@ function Reservation(service, protocol, port) {
   this.port = +port;
   return this;
 }
-
-exports.parseLine = function (line, cb) {
+Reservation.stringify = function (reservation) {
+  return reservation.service + (reservation.protocol ? '/' + reservation.protocol : '') + ' ' + reservation.port;
+}
+Reservation.parse = function (line) {
   var parts = /^([0-9a-zA-Z_\-]+)(?:[/](tcp|udp))?\s*(\d+)$/g.exec(String(line));
   if (!parts) {
     return null;
@@ -72,7 +74,18 @@ Jar.prototype.reservations = function (service, cb) {
 }
 Jar.prototype._reserveLine = function (line, cb) {
   var jar = this;
-  var reservation = exports.parseLine(line);
+  var reservation;
+  if (line instanceof Reservation) {
+     reservation = line;
+  }
+  else {
+     line = String(line).trim();
+     if (line === '') {
+       callback(cb, null, null);
+       return;
+     }
+     Reservation.parse(line);
+  }
   if (!reservation) {
     callback(cb, new Error('invalid line'), null);
     return; 
@@ -103,7 +116,7 @@ Jar.prototype._reserveLine = function (line, cb) {
 }
 Jar.prototype.reserve = function (str, cb) {
   var jar = this;
-  var lines = String(str).split(/(\r)?\n/g);
+  var lines = Array.isArray(str) ? str : String(str).split(/(\r)?\n/g);
   var reservations = [];
   // we use pop off due to port 0 getting confusing
   var done = false;
@@ -126,7 +139,7 @@ Jar.prototype.reserve = function (str, cb) {
   next(null, null);
 }
 Jar.prototype.drop = function (line, cb) {
-  var reservation = exports.parseLine(line);
+  var reservation = Reservation.parse(line);
   var service = reservation.service;
   var port = reservation.service;
   var protocol = reservation.protocol;
@@ -149,7 +162,7 @@ Jar.stringify = function (jar) {
   Object.keys(jar.services).forEach(function (service) {
     var spec = jar.services[service]; 
     spec.forEach(function (reservation) {
-      ret += reservation.service + (reservation.protocol ? '/' + reservation.protocol : '') + ' ' + reservation.port + '\n';
+      ret += Reservation.stringify(reservation) + '\n';
     });
   });
   return ret;
@@ -161,7 +174,7 @@ Jar.parse = function (str) {
 }
 
 exports.allocateFromLine = function (line, cb) {
-  var reservation = exports.parseLine(line);
+  var reservation = Reservation.parse(line);
   if (!reservation) callback(cb, new Error('invalid line'));
   else exports.allocate(reservation, cb);
 }
