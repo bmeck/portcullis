@@ -70,17 +70,17 @@ Jar.prototype.reservations = function (service, cb) {
     callback(cb, null, spec);
   }
 }
-Jar.prototype.reserve = function (line, cb) {
+Jar.prototype._reserveLine = function (line, cb) {
+  var jar = this;
   var reservation = exports.parseLine(line);
   if (!reservation) {
-    callback(cb, new Error('invalid line'));
+    callback(cb, new Error('invalid line'), null);
     return; 
   }
   else if (this._occupied[reservation.port]) {
-    callback(cb, new Error('port is occupied'));
+    callback(cb, new Error('port is occupied'), null);
     return;
   }
-  var jar = this;
   if (reservation.port === 0) {
     this.findUnusedPort(reservation.protocol, null, Infinity, function (err, port) {
       if (err) callback(cb, err);
@@ -98,8 +98,32 @@ Jar.prototype.reserve = function (line, cb) {
     if (!spec) spec = jar.services[reservation.service] = [];
     jar._occupied[reservation.port] = reservation.service;
     spec.push(reservation);
-    callback(cb, null);
+    callback(cb, null, reservation);
   }
+}
+Jar.prototype.reserve = function (str, cb) {
+  var jar = this;
+  var lines = String(str).split(/(\r)?\n/g);
+  var reservations = [];
+  // we use pop off due to port 0 getting confusing
+  var done = false;
+  function next(err, reservation) {
+    if (done) return;
+    if (reservation) reservations.push(reservation);
+    if (err) {
+      done = true;
+      callback(cb, err, null);
+    }
+    else if (!lines.length) {
+      done = true;
+      callback(cb, null, reservations)
+    }
+    else {
+      var line = lines.shift();
+      jar._reserveLine(line, next);
+    }
+  }
+  next(null, null);
 }
 Jar.prototype.drop = function (line, cb) {
   var reservation = exports.parseLine(line);
@@ -132,11 +156,7 @@ Jar.stringify = function (jar) {
 }
 Jar.parse = function (str) {
   var jar = new Jar();
-  var lines = str.split(/(\r)?\n/g);
-  lines.forEach(function (line) {
-    // silently drops invalid lines
-    jar.reserve(line);
-  });
+  jar.reserve(str);
   return jar;
 }
 
@@ -157,7 +177,6 @@ exports.allocate = function (reservation, cb) {
   var service = reservation.service;
   var protocol = reservation.protocol;
   var port = reservation.port;
-  console.log(reservation)
   if (protocol) {
     if (protocol === 'tcp') {
       grabTCP(port, function (err, port, tcp_socket) {
