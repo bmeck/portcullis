@@ -39,29 +39,30 @@ function Jar(min, max) {
   this._base_port = this.minPort;
   return this;
 }
-Jar.prototype.findUnusedPort = function (protocol, preferred, attempts, cb) {
+Jar.prototype._findUnusedPort = function (protocol, preferred, attempts, value, cb) {
   var current_port = preferred ? +preferred : this._base_port;
   var first_port = current_port;
   if (current_port != current_port) {
-    callback(cb, new Error('preferred port must be a number'))
+    cb(new Error('preferred port must be a number'))
   }
   var togo = attempts ? +attempts : Infinity;
   togo--;
   while (this._occupied[current_port]) {
     this._base_port = current_port;
     if (togo <= 0) {
-      callback(cb, new Error('unable to find port in specified number of attempts'));
+      cb(new Error('unable to find port in specified number of attempts'));
       return;
     }
     current_port = (current_port + 1) % (this.maxPort + 1);
     if (current_port === 0) current_port = this.minPort;
     if (current_port === first_port) {
-      callback(cb, new Error('wrapped around and found no ports'));
+      cb(new Error('wrapped around and found no ports'));
       return;
     }
     togo--;
   }
-  callback(cb, null, current_port);
+  this._occupied[current_port] = value;
+  cb(null, current_port);
 }
 Jar.prototype.reservations = function (service, cb) {
   var spec = this.services[service];
@@ -84,7 +85,7 @@ Jar.prototype._reserveLine = function (line, cb) {
        callback(cb, null, null);
        return;
      }
-     Reservation.parse(line);
+     reservation = Reservation.parse(line);
   }
   if (!reservation) {
     callback(cb, new Error('invalid line'), null);
@@ -95,7 +96,7 @@ Jar.prototype._reserveLine = function (line, cb) {
     return;
   }
   if (reservation.port === 0) {
-    this.findUnusedPort(reservation.protocol, null, Infinity, function (err, port) {
+    this._findUnusedPort(reservation.protocol, null, Infinity, reservation.service, function (err, port) {
       if (err) callback(cb, err);
       else {
         reservation.port = port;
@@ -109,7 +110,6 @@ Jar.prototype._reserveLine = function (line, cb) {
   function register_port() {
     var spec = jar.services[reservation.service];
     if (!spec) spec = jar.services[reservation.service] = [];
-    jar._occupied[reservation.port] = reservation.service;
     spec.push(reservation);
     callback(cb, null, reservation);
   }
