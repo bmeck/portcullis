@@ -1,3 +1,5 @@
+var util = require('util');
+var EventEmitter = require('events').EventEmitter;
 var net = require('net');
 var dgram = require('dgram');
 var MAX_PORT = 65535;
@@ -31,6 +33,7 @@ Reservation.parse = function (line) {
 
 exports.Jar = Jar;
 function Jar(min, max) {
+  EventEmitter.call(this);
   this.services = Object.create(null);
   this.minPort = min == null ? 1025 : +min;
   this.maxPort = max == null ? MAX_PORT : +max;
@@ -39,6 +42,7 @@ function Jar(min, max) {
   this._base_port = this.minPort;
   return this;
 }
+util.inherits(Jar, EventEmitter);
 Jar.prototype._findUnusedPort = function (protocol, preferred, attempts, value, cb) {
   var current_port = preferred ? +preferred : this._base_port;
   var first_port = current_port;
@@ -62,6 +66,7 @@ Jar.prototype._findUnusedPort = function (protocol, preferred, attempts, value, 
     togo--;
   }
   this._occupied[current_port] = value;
+  this.emit('updated');
   cb(null, current_port);
 }
 Jar.prototype.reservations = function (service, cb) {
@@ -152,6 +157,7 @@ Jar.prototype.drop = function (line, cb) {
       spec.splice(i, 1);
       delete this._occupied[port];
       if (spec.length === 0) delete spec[service];
+      this.emit('updated');
       break;
     }
   }
