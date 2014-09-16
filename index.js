@@ -44,30 +44,45 @@ function Jar(min, max) {
 }
 util.inherits(Jar, EventEmitter);
 Jar.prototype._findUnusedPort = function (protocol, preferred, attempts, value, cb) {
+  var jar = this;
   var current_port = preferred ? +preferred : this._base_port;
   var first_port = current_port;
   if (current_port != current_port) {
     cb(new Error('preferred port must be a number'))
   }
   var togo = attempts ? +attempts : Infinity;
-  togo--;
-  while (this._occupied[current_port]) {
-    this._base_port = current_port;
-    if (togo <= 0) {
-      cb(new Error('unable to find port in specified number of attempts'));
-      return;
-    }
-    current_port = (current_port + 1) % (this.maxPort + 1);
-    if (current_port === 0) current_port = this.minPort;
-    if (current_port === first_port) {
-      cb(new Error('wrapped around and found no ports'));
-      return;
-    }
+
+  var attempt = function attempt() {
     togo--;
+    while (jar._occupied[current_port]) {
+      jar._base_port = current_port;
+      if (togo <= 0) {
+        cb(new Error('unable to find port in specified number of attempts'));
+        return;
+      }
+      current_port = (current_port + 1) % (jar.maxPort + 1);
+      if (current_port === 0) current_port = jar.minPort;
+      if (current_port === first_port) {
+        cb(new Error('wrapped around and found no ports'));
+        return;
+      }
+      togo--;
+    }
+  
+    jar._occupied[current_port] = value;
+    grabTCP(current_port, function (err, port, server) {
+      // leave it occupied
+      if (err) {
+        attempt();
+        return;
+      }
+      server.close(function () {
+        jar.emit('updated');
+        cb(null, port);
+      });
+    });
   }
-  this._occupied[current_port] = value;
-  this.emit('updated');
-  cb(null, current_port);
+  attempt();
 }
 Jar.prototype.reservations = function (service, cb) {
   var spec = this.services[service];
