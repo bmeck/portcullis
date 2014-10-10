@@ -245,6 +245,7 @@ exports.allocate = function (reservation, cb) {
 
 function grabTCP(port, cb) {
   var s = net.createServer();
+  s.on('error', cb);
   s.listen(port || 0, function (err) {
     if (err) callback(cb, err);
     else cb(null, s.address().port, s);
@@ -253,6 +254,7 @@ function grabTCP(port, cb) {
 
 function grabUDP(port, cb) {
   var s = dgram.createSocket('udp4'); 
+  s.on('error', cb);
   s.bind(port || 0, function (err) {
     if (err) cb(err);
     else cb(null, s.address().port, s);
