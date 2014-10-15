@@ -10,6 +10,10 @@ function callback(cb, err, value) {
   });
 }
 
+function sluggify_service_name(str) {
+  return str.replace(/[^a-zA-Z0-9\-]|[_]/g, '_$&');
+}
+
 exports.Reservation = Reservation;
 function Reservation(service, protocol, port) {
   this.service = service;
@@ -21,11 +25,11 @@ Reservation.stringify = function (reservation) {
   return reservation.service + (reservation.protocol ? '/' + reservation.protocol : '') + ' ' + reservation.port;
 }
 Reservation.parse = function (line) {
-  var parts = /^([0-9a-zA-Z_\-]+)(?:[/](tcp|udp))?\s*(\d+)$/g.exec(String(line));
+  var parts = /^(.*?)(?:[/](tcp|udp))?\s*(\d+)$/g.exec(String(line));
   if (!parts) {
     return null;
   }
-  var service = parts[1];
+  var service = sluggify_service_name(parts[1]);
   var protocol = parts[2];
   var port = parts[3];
   return new Reservation(service, protocol, port);
@@ -85,7 +89,7 @@ Jar.prototype._findUnusedPort = function (protocol, preferred, attempts, value, 
   attempt();
 }
 Jar.prototype.reservations = function (service, cb) {
-  var spec = this.services[service];
+  var spec = this.services[sluggify_service_name(service)];
   if (!spec) {
     callback(cb, new Error('no service with that name'));
   }
